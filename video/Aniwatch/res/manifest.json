@@ -1,0 +1,9 @@
+{
+    "name": "Aniwatch",
+    "author": "Inumaki + JimIsWayTooEpic",
+    "id": "en_aniwatch",
+    "icon": "icon.png",
+    "version": "0.0.1",
+    "type": "video",
+    "schema": 2
+}

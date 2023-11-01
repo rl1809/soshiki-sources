@@ -1,0 +1,21 @@
+{
+  "devDependencies": {
+    "@babel/preset-env": "^7.21.5",
+    "babelify": "^10.0.0",
+    "browserify": "^17.0.0"
+  },
+  "dependencies": {
+    "crypto-es": "^1.2.7",
+    "soshiki-sources": "file:../../../soshiki-sources/soshiki-sources-0.3.3.tgz"
+  },
+  "name": "aniwatch",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

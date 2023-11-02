@@ -35,8 +35,9 @@ import {
 } from "soshiki-sources";
 import CryptoJS from "crypto-es";
 
-let baseUrl: string | undefined;
-const AJAX_URL = "https://ajax.gogo-load.com";
+const BASE_URL = "https://animetvn2.com";
+
+const AJAX_URL = "https://animetvn2.com/ajax";
 
 const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
@@ -49,61 +50,25 @@ const STREAMSB_PAYLOAD_END = "7c7c346f323179543569386f31597c7c73747265616d7362";
 export default class GogoanimeSource extends VideoSource {
     id = "en_gogoanime";
     async getListing(listing: Listing, page: number): Promise<VideoEntryResults> {
-        if (typeof baseUrl === "undefined") await this.refreshBaseUrl();
         let entries: VideoEntry[] = [];
 
-        if (listing.id === "popular" || listing.id === "") {
-            const document = Document.parse(
-                await fetch(`${AJAX_URL}/ajax/page-recent-release-ongoing.html?page=${page}`).then((res) => `<html>${res.data}</html>`)
+        const document = Document.parse(
+            await fetch(`${BASE_URL}/nhom/${listing.id}?page=${page}`).then((res) => `${res.data}`)
+        );
+        const items = document.querySelectorAll("div.film-list > div.item.film_item");
+        for (const item of items) {
+            entries.push(
+                createVideoEntry({
+                    id: item.querySelector("a").getAttribute("href"),
+                    title: item.querySelector("h3.title > a").innerText,
+                    cover: item.querySelector("img.thumb").getAttribute("src"),
+                    episodes: parseInt(item.querySelector("span.time").innerText.split("/")[1]),
+                })
             );
-            const items = document.querySelectorAll("div.added_series_body > ul > li");
-            for (const item of items) {
-                const children = item.children;
-                entries.push(
-                    createVideoEntry({
-                        id: children[0].getAttribute("href"),
-                        title: children[1].innerText.trim(),
-                        cover: children[0].querySelector("div").style.match(/https?:\/\/[^']*/)?.[0] ?? "",
-                        episodes: parseFloat(
-                            children[3]
-                                .querySelector("a")
-                                .getAttribute("href")
-                                .match(/-episode-(.*?)$/)?.[1]
-                                .replace("-", ".") ?? ""
-                        ),
-                    })
-                );
-            }
-            document.free();
-        } else {
-            const document = Document.parse(
-                await fetch(`${AJAX_URL}/ajax/page-recent-release.html?page=${page}&type=${listing.id}`).then((res) => `<html>${res.data}</html>`)
-            );
-            const items = document.querySelectorAll("div.last_episodes > ul.items > li");
-            for (const item of items) {
-                entries.push(
-                    createVideoEntry({
-                        id:
-                            "/category" +
-                            item
-                                .querySelector("a")
-                                .getAttribute("href")
-                                .replace(/-episode-(.*?)$/, ""),
-                        title: item.querySelector("p.name").innerText.trim(),
-                        cover: item.querySelector("img").getAttribute("src"),
-                        episodes: parseFloat(
-                            item
-                                .querySelector("a")
-                                .getAttribute("href")
-                                .match(/-episode-(.*?)$/)?.[1]
-                                .replace("-", ".") ?? ""
-                        ),
-                    })
-                );
-            }
-
-            document.free();
         }
+
+        document.free();
+
         return createVideoEntryResults({
             page,
             results: entries,
@@ -111,8 +76,7 @@ export default class GogoanimeSource extends VideoSource {
         });
     }
     async getSearchResults(query: string, page: number, filters: Filter[]): Promise<VideoEntryResults> {
-        if (typeof baseUrl === "undefined") await this.refreshBaseUrl();
-        let url = `${baseUrl!}/filter.html?keyword=${encodeURIComponent(query)}&page=${page}`;
+        let url = `${BASE_URL!}/filter.html?keyword=${encodeURIComponent(query)}&page=${page}`;
         for (const filter of filters) {
             if (filter.type === FilterType.sort) {
                 url += `&${(filter as SortFilter).value.find((option) => option.selected)?.id ?? (filter as SortFilter).value[0].id}`;
@@ -149,8 +113,7 @@ export default class GogoanimeSource extends VideoSource {
         }
     }
     async getEntry(id: string): Promise<VideoEntry> {
-        if (typeof baseUrl === "undefined") await this.refreshBaseUrl();
-        const document = Document.parse(await fetch(`${baseUrl!}${id}`).then((res) => res.data));
+        const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
         const info = document.querySelector("div.anime_info_body_bg");
         const types = info.querySelectorAll("p.type");
         const entry = createVideoEntry({
@@ -160,15 +123,14 @@ export default class GogoanimeSource extends VideoSource {
             cover: info.querySelector("img").getAttribute("src"),
             contentRating: EntryContentRating.safe,
             status: this.parseEntryStatus(types[4].querySelector("a").innerText),
-            links: [`${baseUrl!}${id}`],
+            links: [`${BASE_URL!}${id}`],
             synopsis: types[1].innerText.substring("Plot Summary: ".length).trim(),
         });
         document.free();
         return entry;
     }
     async getEpisodes(id: string, page: number): Promise<VideoEpisodeResults> {
-        if (typeof baseUrl === "undefined") await this.refreshBaseUrl();
-        const document = Document.parse(await fetch(`${baseUrl!}${id}`).then((res) => res.data));
+        const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
         const ajaxId = document.getElementById("movie_id").getAttribute("value");
         document.free();
         const document2 = Document.parse(
@@ -195,8 +157,7 @@ export default class GogoanimeSource extends VideoSource {
         });
     }
     async getEpisodeDetails(id: string, entryId: string): Promise<VideoEpisodeDetails> {
-        if (typeof baseUrl === "undefined") await this.refreshBaseUrl();
-        const document = Document.parse(await fetch(`${baseUrl!}${id}`).then((res) => res.data));
+        const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
         const gogoServerUrl = `${document.querySelector("div#load_anime > div > div > iframe").getAttribute("src")}`;
         const vidStreamingServerUrl = `${document
             .querySelector("div.anime_video_body > div.anime_muti_link > ul > li.vidcdn > a")
@@ -250,8 +211,7 @@ export default class GogoanimeSource extends VideoSource {
         });
     }
     async getFilters(): Promise<FilterGroup[]> {
-        if (typeof baseUrl === "undefined") await this.refreshBaseUrl();
-        let document = Document.parse(await fetch(`${baseUrl!}/filter.html`).then((res) => res.data));
+        let document = Document.parse(await fetch(`${BASE_URL!}/filter.html`).then((res) => res.data));
         let genres = document.querySelectorAll("div.cls_genre > ul > li").map((el) => {
             return {
                 id: `${el.querySelector("input").getAttribute("name")}=${el.querySelector("input").getAttribute("value")}`,
@@ -361,23 +321,13 @@ export default class GogoanimeSource extends VideoSource {
     async getListings(): Promise<Listing[]> {
         return [
             createListing({
-                id: "1",
-                name: "Recent",
-                type: ListingType.featured,
-            }),
-            createListing({
-                id: "popular",
-                name: "Popular",
-                type: ListingType.topRated,
-            }),
-            createListing({
-                id: "2",
-                name: "Dub",
+                id: "anime",
+                name: "Anime",
                 type: ListingType.basic,
             }),
             createListing({
-                id: "3",
-                name: "Chinese",
+                id: "cartoon",
+                name: "Cartoon",
                 type: ListingType.basic,
             }),
         ];
@@ -466,8 +416,7 @@ export default class GogoanimeSource extends VideoSource {
         document.free();
 
         const encryptedResponse = await fetch(
-            `${serverUrl.match(/(https?:)[^\?]*\?.*/)?.[1] ?? "https:"}//${
-                serverUrl.match(/https?:\/\/([^\/]*)/)?.[1] ?? ""
+            `${serverUrl.match(/(https?:)[^\?]*\?.*/)?.[1] ?? "https:"}//${serverUrl.match(/https?:\/\/([^\/]*)/)?.[1] ?? ""
             }/encrypt-ajax.php?${encryptedAjaxParams}`,
             {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -600,17 +549,5 @@ export default class GogoanimeSource extends VideoSource {
         });
 
         return urls;
-    }
-
-    async refreshBaseUrl() {
-        try {
-            if (this.getSettingsValue("disableDynamicUrl")?.value === true) throw new Error();
-            const document = await fetch("https://gogotaku.info").then((res) => Document.parse(res.data));
-            const url = document.querySelectorAll(".site_go > a")[0]?.getAttribute("href") ?? "https://gogoanimehd.io";
-            document.free();
-            baseUrl = url;
-        } catch (error) {
-            baseUrl = "https://gogoanimehd.io";
-        }
     }
 }

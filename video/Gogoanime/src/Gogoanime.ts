@@ -53,7 +53,7 @@ export default class GogoanimeSource extends VideoSource {
         let entries: VideoEntry[] = [];
 
         const document = Document.parse(
-            await fetch(`${BASE_URL}/nhom/${listing.id}?page=${page}`).then((res) => `${res.data}`)
+            await fetch(`${BASE_URL}/nhom/${listing.id}.html?page=${page}`).then((res) => `${res.data}`)
         );
         const items = document.querySelectorAll("div.film-list > div.item.film_item");
         for (const item of items) {

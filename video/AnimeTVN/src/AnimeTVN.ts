@@ -135,11 +135,13 @@ export default class GogoanimeSource extends VideoSource {
     }
 
     async getEpisodes(id: string, page: number): Promise<VideoEpisodeResults> {
-        id = "https://animetvn2.com/xem-phim/f184205-dau-la-dai-luc-2-tuyet-the-duong-mon-3d-tap-01.html"
         const document = Document.parse(await fetch(id).then((res) => res.data));
+        const vid = document.querySelector("a.btn.play-now").getAttribute('href')
+
+        const vdocument = Document.parse(await fetch(vid).then((res) => res.data));
         let episodes: VideoEpisode[] = [];
 
-        for (const episode of document.querySelectorAll("div#_listep a.tapphim")) {
+        for (const episode of vdocument.querySelectorAll("div#_listep a.tapphim")) {
             const href = episode.getAttribute("href").trim();
             const title = episode.getAttribute("data-title").trim();
             const episodeNumber = parseFloat(title.match(/tập (\d+)/i)?.[1] ?? "0");

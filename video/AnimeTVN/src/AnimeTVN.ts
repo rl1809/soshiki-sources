@@ -106,75 +106,68 @@ export default class GogoanimeSource extends VideoSource {
     async getEntry(id: string): Promise<VideoEntry> {
         const document = Document.parse(await fetch(id).then((res) => res.data));
         const info = document.querySelector("div._info_wrap");
-      
+
+        const vid = document.querySelector("a.btn.play-now").getAttribute('href')
+
         const title = info.querySelector("h2.name-vi").innerText.trim();
         const genres = info
-          .querySelectorAll("ul.more-info > li.has-color")[0]
-          .querySelectorAll("a")
-          .map((a) => a.innerText);
+            .querySelectorAll("ul.more-info > li.has-color")[0]
+            .querySelectorAll("a")
+            .map((a) => a.innerText);
         const episodes = parseInt(
-          info.querySelectorAll("ul.more-info > li.has-color")[1]
-            .innerText.split(":")[1]
-            .trim()
-            .split("/")[1]
+            info.querySelectorAll("ul.more-info > li.has-color")[1]
+                .innerText.split(":")[1]
+                .trim()
+                .split("/")[1]
         );
-        const views = parseInt(
-          info.querySelectorAll("ul.more-info > li.has-color")[2]
-            .innerText.split(":")[1]
-            .replace("lượt", "")
-            .trim()
-        );
-        const year = info
-          .querySelector("ul.more-info > li.has-color > span")
-          .innerText.trim();
-      
+
         const synopsis = document
-          .querySelector("div.tab-content > div.active.in > div.content")
-          .innerText.trim();
-      
+            .querySelector("div.tab-content > div.active.in > div.content")
+            .innerText.trim();
+
         const entry = createVideoEntry({
-          id,
-          title,
-          tags: genres,
-          cover: info.querySelector("img").getAttribute("src"),
-          contentRating: EntryContentRating.safe,
-          status: EntryStatus.ongoing,
-          links: [id],
-          episodes,
-          synopsis,
+            id: vid,
+            title,
+            tags: genres,
+            cover: info.querySelector("img").getAttribute("src"),
+            contentRating: EntryContentRating.safe,
+            status: EntryStatus.ongoing,
+            links: [id],
+            episodes,
+            synopsis,
         });
-      
+
         document.free();
         return entry;
-      }
-      
+    }
+
     async getEpisodes(id: string, page: number): Promise<VideoEpisodeResults> {
-        const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
-        const ajaxId = document.getElementById("movie_id").getAttribute("value");
-        document.free();
-        const document2 = Document.parse(
-            await fetch(`${AJAX_URL}/ajax/load-list-episode?ep_start=0&ep_end=1000000&id=${ajaxId}`).then((res) => `<html>${res.data}</html>`)
-        );
+        const document = Document.parse(await fetch(id).then((res) => res.data));
         let episodes: VideoEpisode[] = [];
-        for (const episode of document2.querySelectorAll("ul#episode_related > li > a")) {
+
+        for (const episode of document.querySelectorAll("div#_listep a.tapphim")) {
             const href = episode.getAttribute("href").trim();
-            const typeText = episode.querySelector("div.cate").innerText.toLowerCase();
+            const title = episode.getAttribute("data-title").trim();
+            const episodeNumber = parseFloat(title.match(/tập (\d+)/i)?.[1] ?? "0");
+
             episodes.push(
                 createVideoEpisode({
                     id: href,
                     entryId: id,
-                    episode: parseFloat(href.match(/(?:.*?)episode-(\d+)/)?.[1] ?? "0"),
-                    type: typeText === "sub" ? VideoEpisodeType.sub : typeText === "dub" ? VideoEpisodeType.dub : VideoEpisodeType.unknown,
+                    episode: episodeNumber,
+                    type: VideoEpisodeType.sub,
                 })
             );
         }
-        document2.free();
+
+        document.free();
         return createVideoEpisodeResults({
             page,
             hasMore: false,
             results: episodes,
         });
     }
+
     async getEpisodeDetails(id: string, entryId: string): Promise<VideoEpisodeDetails> {
         const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
         const gogoServerUrl = `${document.querySelector("div#load_anime > div > div > iframe").getAttribute("src")}`;

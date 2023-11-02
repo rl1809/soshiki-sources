@@ -48,7 +48,7 @@ const STREAMSB_PAYLOAD_START = "5773626d62663976713374717c7c";
 const STREAMSB_PAYLOAD_END = "7c7c346f323179543569386f31597c7c73747265616d7362";
 
 export default class GogoanimeSource extends VideoSource {
-    id = "en_gogoanime";
+    id = "vi_animetvn";
     async getListing(listing: Listing, page: number): Promise<VideoEntryResults> {
         let entries: VideoEntry[] = [];
 

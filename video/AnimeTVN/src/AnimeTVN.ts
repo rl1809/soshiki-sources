@@ -114,12 +114,6 @@ export default class GogoanimeSource extends VideoSource {
             .querySelectorAll("ul.more-info > li.has-color")[0]
             .querySelectorAll("a")
             .map((a) => a.innerText);
-        const episodes = parseInt(
-            info.querySelectorAll("ul.more-info > li.has-color")[1]
-                .innerText.split(":")[1]
-                .trim()
-                .split("/")[1]
-        );
 
         const synopsis = document
             .querySelector("div.tab-content > div.active.in > div.content")
@@ -133,8 +127,7 @@ export default class GogoanimeSource extends VideoSource {
             contentRating: EntryContentRating.safe,
             status: EntryStatus.ongoing,
             links: [id],
-            episodes,
-            synopsis,
+            synopsis: synopsis,
         });
 
         document.free();
@@ -142,6 +135,7 @@ export default class GogoanimeSource extends VideoSource {
     }
 
     async getEpisodes(id: string, page: number): Promise<VideoEpisodeResults> {
+        id = "https://animetvn2.com/xem-phim/f184205-dau-la-dai-luc-2-tuyet-the-duong-mon-3d-tap-01.html"
         const document = Document.parse(await fetch(id).then((res) => res.data));
         let episodes: VideoEpisode[] = [];
 

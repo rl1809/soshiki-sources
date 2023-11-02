@@ -102,33 +102,52 @@ export default class GogoanimeSource extends VideoSource {
             hasMore: entries.length > 0,
         });
     }
-    parseEntryStatus(status: string): EntryStatus {
-        switch (status) {
-            case "Ongoing":
-                return EntryStatus.ongoing;
-            case "Completed":
-                return EntryStatus.completed;
-            default:
-                return EntryStatus.unknown;
-        }
-    }
+
     async getEntry(id: string): Promise<VideoEntry> {
-        const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
-        const info = document.querySelector("div.anime_info_body_bg");
-        const types = info.querySelectorAll("p.type");
+        const document = Document.parse(await fetch(id).then((res) => res.data));
+        const info = document.querySelector("div._info_wrap");
+      
+        const title = info.querySelector("h2.name-vi").innerText.trim();
+        const genres = info
+          .querySelectorAll("ul.more-info > li.has-color")[0]
+          .querySelectorAll("a")
+          .map((a) => a.innerText);
+        const episodes = parseInt(
+          info.querySelectorAll("ul.more-info > li.has-color")[1]
+            .innerText.split(":")[1]
+            .trim()
+            .split("/")[1]
+        );
+        const views = parseInt(
+          info.querySelectorAll("ul.more-info > li.has-color")[2]
+            .innerText.split(":")[1]
+            .replace("lượt", "")
+            .trim()
+        );
+        const year = info
+          .querySelector("ul.more-info > li.has-color > span")
+          .innerText.trim();
+      
+        const synopsis = document
+          .querySelector("div.tab-content > div.active.in > div.content")
+          .innerText.trim();
+      
         const entry = createVideoEntry({
-            id,
-            title: info.querySelector("h1").innerText.trim(),
-            tags: types[2].querySelectorAll("a").map((e) => e.innerText.replace(", ", "")),
-            cover: info.querySelector("img").getAttribute("src"),
-            contentRating: EntryContentRating.safe,
-            status: this.parseEntryStatus(types[4].querySelector("a").innerText),
-            links: [`${BASE_URL!}${id}`],
-            synopsis: types[1].innerText.substring("Plot Summary: ".length).trim(),
+          id,
+          title,
+          tags: genres,
+          cover: info.querySelector("img").getAttribute("src"),
+          contentRating: EntryContentRating.safe,
+          status: EntryStatus.ongoing,
+          links: [id],
+          episodes,
+          synopsis,
         });
+      
         document.free();
         return entry;
-    }
+      }
+      
     async getEpisodes(id: string, page: number): Promise<VideoEpisodeResults> {
         const document = Document.parse(await fetch(`${BASE_URL!}${id}`).then((res) => res.data));
         const ajaxId = document.getElementById("movie_id").getAttribute("value");
